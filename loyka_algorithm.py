@@ -35,24 +35,24 @@ import matplotlib.pyplot as plt
 from calculations_physec import _calc_w, secrecy_rate, BOB, EVE, H
 from util_loyka import vec_stack_cols, vech_stack_cols_tril, duplication_matrix_fast, inv_vec, inv_vech
 
-def opt_func_secrecy_capacity(matrices, cov, cov_noise_K):
-    w = _calc_w(matrices)
-    h_stack = np.vstack((matrices[BOB], matrices[EVE]))
+def opt_func_secrecy_capacity(mat_bob, mat_eve, cov, cov_noise_K):
+    w = _calc_w(mat_bob, mat_eve)
+    h_stack = np.vstack((mat_bob, mat_eve))
     rx_modes, tx_modes = np.shape(h_stack)
     _num = np.linalg.det(np.eye(tx_modes) + np.linalg.inv(cov_noise_K) @ h_stack @ cov @ H(h_stack))
     _den = np.linalg.det(np.eye(len(cov)) + w[EVE]@cov)
     return .5*np.log2(_num/_den)
 
-def upper_bound_secrecy_capacity(matrices, cov, cov_noise_K):
-    w = _calc_w(matrices)
-    h_stack = np.vstack((matrices[BOB], matrices[EVE]))
+def upper_bound_secrecy_capacity(mat_bob, mat_eve, cov, cov_noise_K):
+    w = _calc_w(mat_bob, mat_eve)
+    h_stack = np.vstack((mat_bob, mat_eve))
     _num = np.linalg.det(np.eye(len(h_stack)) + np.linalg.inv(cov_noise_K) @ h_stack @ cov @ H(h_stack))
     _den = np.linalg.det(np.eye(len(cov)) + w[EVE] @ cov)
     return np.maximum(np.log2(_num/_den), 0)
 
-def _calc_q_w_z(matrices, cov, cov_noise_K):
-    w = _calc_w(matrices)
-    h_stack = np.vstack((matrices[BOB], matrices[EVE]))
+def _calc_q_w_z(mat_bob, mat_eve, cov, cov_noise_K):
+    w = _calc_w(mat_bob, mat_eve)
+    h_stack = np.vstack((mat_bob, mat_eve))
     q = h_stack @ cov @ H(h_stack)
 
     inv_cov_noise_K = np.linalg.inv(cov_noise_K)
@@ -72,7 +72,7 @@ def _improved_kron(A, B):
     return kprod
 
 #@profile
-def hessian_z(matrices, cov, cov_noise_K, Dm, Dn, t, calc_mat=None):
+def hessian_z(mat_bob, mat_eve, cov, cov_noise_K, Dm, Dn, t, calc_mat=None):
     #h_stack, q, w_stack, z1, z2, inv_k = _calc_q_w_z(matrices, cov, cov_noise_K)
     h_stack, q, w_stack, z1, z2, inv_k, inv_kq, inv_cov = calc_mat
 
@@ -90,9 +90,9 @@ def hessian_z(matrices, cov, cov_noise_K, Dm, Dn, t, calc_mat=None):
     return np.block([[del_xx, del_xy], [H(del_xy), del_yy]])
 
 #@profile
-def residual(w, matrices, cov, cov_noise_K, Dm, Dn, eq_const_A, eq_const_b, t):
+def residual(w, mat_bob, mat_eve, cov, cov_noise_K, Dm, Dn, eq_const_A, eq_const_b, t):
     len_z = np.shape(eq_const_A)[1]
-    h_stack, q, w_stack, z1, z2, inv_k = _calc_q_w_z(matrices, cov, cov_noise_K)
+    h_stack, q, w_stack, z1, z2, inv_k = _calc_q_w_z(mat_bob, mat_eve, cov, cov_noise_K)
 
     inv_cov = np.linalg.inv(cov)
     inv_K_q = np.linalg.inv(cov_noise_K+q)
@@ -124,47 +124,34 @@ def get_cov_matrices(w, len_z, len_x):
     cov_noise_K = np.block([[np.eye(len(k21)), H(k21)], [k21, np.eye(len(k21))]])
     return cov, cov_noise_K
 
-#@profile
-def secrecy_capacity_wtc_loyka(matrices, t=1e3, alpha=0.3, beta=0.5, step_size=2, n_max=25, power=10, eps=1e-10, dirname=None):
+def secrecy_capacity_wtc_loyka(mat_bob, mat_eve, t=1e3, alpha=0.3, beta=0.5, step_size=2, n_max=25, power=10, eps=1e-10, dirname=None):
     logger = logging.getLogger('algorithm')
     time0 = time()
-    n_modes, m_streams = np.shape(matrices[BOB])
-    logger.debug("Matrices have shape: %d x %d", n_modes, m_streams)
+    n_bob, m_streams = np.shape(mat_bob)
+    n_eve, m_streams = np.shape(mat_eve)
+    logger.debug("Matrices have shape: %d x %d", n_bob, m_streams)
     if dirname is None:
-        dirname = "{}x{}".format(n_modes, m_streams)
+        dirname = "{}x{}".format(n_bob, m_streams)
 
     B = power
-    A = np.hstack((vech_stack_cols_tril(np.eye(m_streams)).T, np.zeros((1, n_modes**2))))
+    A = np.hstack((vech_stack_cols_tril(np.eye(m_streams)).T, np.zeros((1, n_bob*n_eve))))
 
     #if checkpoint:
-    try:
-        logger.info("Load values from checkpoint")
-        interm_results, _checkpoint = load_checkpoint(dirname)
-        step_count = _checkpoint + 1
-        matrices = interm_results["matrices"]
-        cov = interm_results["cov"]
-        k21 = interm_results["k21"]
-        x = interm_results["x"]
-        y = interm_results["y"]
-        lam = interm_results["lam"]
-        t = interm_results["t"]
-    except FileNotFoundError:
-    #else:
-        logger.info("Prepare initial values")
-        interm_results = {"matrices": matrices}
-        cov = power/m_streams*np.eye(m_streams)
-        k21 = np.zeros((n_modes, n_modes))
-        x = vech_stack_cols_tril(cov)
-        y = vec_stack_cols(k21)
-        lam = 0
-        step_count = 1
+    logger.info("Prepare initial values")
+    cov = power/m_streams*np.eye(m_streams)
+    k21 = np.zeros((n_eve, n_bob))
+    x = vech_stack_cols_tril(cov)
+    y = vec_stack_cols(k21)
+    lam = 0
+    step_count = 1
     z = np.vstack((x, y))
     w = np.vstack((z, lam))
-    cov_noise_K = np.block([[np.eye(len(k21)), H(k21)], [k21, np.eye(len(k21))]])
+    cov_noise_K = np.block([[np.eye(n_bob), H(k21)], [k21, np.eye(n_eve)]])
 
     Dm = duplication_matrix_fast(m_streams)
-    Dn = duplication_matrix_fast(2*n_modes)
-    mask = np.block([[np.zeros_like(k21), np.zeros_like(k21)], [np.ones_like(k21), np.zeros_like(k21)]])
+    Dn = duplication_matrix_fast(n_bob+n_eve)
+    #mask = np.block([[np.zeros_like(k21), np.zeros_like(k21)], [np.ones_like(k21), np.zeros_like(k21)]])
+    mask = np.block([[np.zeros((n_bob, n_bob)), np.zeros_like(H(k21))], [np.ones_like(k21), np.zeros((n_eve, n_eve))]])
     mask = np.where(vech_stack_cols_tril(mask).ravel())[0]
     Dn = Dn[:, mask]  # fast column slicing in csc format
     Dm = Dm.toarray()
@@ -176,7 +163,7 @@ def secrecy_capacity_wtc_loyka(matrices, t=1e3, alpha=0.3, beta=0.5, step_size=2
     # Algorithm 3 from the Paper: Barrier Method
     interm_res_norm = []
     interm_sec_rate = []
-    interm_upper_bound = []
+    #interm_upper_bound = []
     #while 1./t > 1e-8:#eps:
     while t < 1e6:
         t_start = time()
@@ -185,29 +172,29 @@ def secrecy_capacity_wtc_loyka(matrices, t=1e3, alpha=0.3, beta=0.5, step_size=2
         newton_counter = 1
         # Algorithm 2: Newton method for minimax optimization
         #res_w = 1
-        res_w, _calced_mat = residual(w, matrices, cov, cov_noise_K, Dm, Dn, A, B, t)
+        res_w, _calced_mat = residual(w, mat_bob, mat_eve, cov, cov_noise_K, Dm, Dn, A, B, t)
         while np.linalg.norm(res_w) > 1e-10:#eps:
             #res_w = residual(w, matrices, cov, cov_noise_K, Dm, Dn, A, B, t)
             #if newton_counter == 2:
             #    return
-            _hessian = hessian_z(matrices, cov, cov_noise_K, Dm, Dn, t, calc_mat=_calced_mat)
+            _hessian = hessian_z(mat_bob, mat_eve, cov, cov_noise_K, Dm, Dn, t, calc_mat=_calced_mat)
             kkt_mat = np.block([[_hessian, H(A)], [A, np.zeros((len(A), len(A)))]])
             #delta_w = -np.linalg.inv(kkt_mat) @ res_w
             delta_w = -np.linalg.solve(kkt_mat, res_w)
  
             # Algorithm 1
-            res_w_new, _calced_mat = residual(w+delta_w, matrices, cov, cov_noise_K, Dm, Dn,
+            res_w_new, _calced_mat = residual(w+delta_w, mat_bob, mat_eve, cov, cov_noise_K, Dm, Dn,
                                               A, B, t)
-            s = .2
-            #s = 1.
-            #norm_res_w = np.linalg.norm(res_w)
-            #if step_count == 1:
-            #    s = .1
-            #else:
-            #    while np.linalg.norm(res_w_new) > (1.-alpha*s)*norm_res_w+1e-4:
-            #        s = beta*s
-            #        res_w_new = residual(w+s*delta_w, matrices, cov, cov_noise_K,
-            #                             Dm, Dn, A, B, t)[0]
+            #s = .2
+            s = 1.
+            norm_res_w = np.linalg.norm(res_w)
+            if step_count == 1:
+                s = .1
+            else:
+                while np.linalg.norm(res_w_new) > (1.-alpha*s)*norm_res_w+1e-4:
+                    s = beta*s
+                    res_w_new = residual(w+s*delta_w, mat_bob, mat_eve, cov, cov_noise_K,
+                                         Dm, Dn, A, B, t)[0]
             #print(s)
             newton_counter = newton_counter + 1
 
@@ -219,32 +206,33 @@ def secrecy_capacity_wtc_loyka(matrices, t=1e3, alpha=0.3, beta=0.5, step_size=2
             x = z[:len(x)]
             y = z[len(x):]
             cov = inv_vech(x)
-            k21 = inv_vec(y)
-            cov_noise_K = np.block([[np.eye(len(k21)), H(k21)], [k21, np.eye(len(k21))]])
+            k21 = inv_vec(y, shape=(n_eve, n_bob))
+            cov_noise_K = np.block([[np.eye(n_bob), H(k21)], [k21, np.eye(n_eve)]])
+            #cov_noise_K = np.block([[np.eye(len(k21)), H(k21)], [k21, np.eye(len(k21))]])
             #
-            res_w, _calced_mat = residual(w, matrices, cov, cov_noise_K, Dm, Dn, A, B, t)
+            res_w, _calced_mat = residual(w, mat_bob, mat_eve, cov, cov_noise_K, Dm, Dn, A, B, t)
             interm_res_norm.append(np.linalg.norm(res_w))
-            interm_sec_rate.append(secrecy_rate(matrices, cov=cov)*np.log(2))
-            interm_upper_bound.append(upper_bound_secrecy_capacity(matrices, cov, cov_noise_K)*np.log(2))
+            interm_sec_rate.append(secrecy_rate(mat_bob, mat_eve, cov=cov)*np.log(2))
+            #interm_upper_bound.append(upper_bound_secrecy_capacity(mat_bob, mat_eve, cov, cov_noise_K)*np.log(2))
 
         t_end = time()
         logger.debug("Iteration took %.3f", t_end-t_start)
         logger.info("Number of newton steps: %d", newton_counter)
 
         t = step_size*t
-        interm_results["cov"] = cov
-        interm_results["x"] = x
-        interm_results["y"] = y
-        interm_results["lam"] = lam
-        interm_results["k21"] = k21
-        interm_results["t"] = t
-        save_checkpoint(interm_results, step_count, dirname)
+       # interm_results["cov"] = cov
+       # interm_results["x"] = x
+       # interm_results["y"] = y
+       # interm_results["lam"] = lam
+       # interm_results["k21"] = k21
+       # interm_results["t"] = t
+        #save_checkpoint(interm_results, step_count, dirname)
         logger.debug("Saved checkpoint")
         step_count = step_count + 1
     time2 = time()
     logger.info("Finished calculations. Total time: %.3f sec.", time2-time0)
     logger.debug("Norm of final residual: %e", np.linalg.norm(res_w))
-    return cov, interm_res_norm, interm_sec_rate, interm_upper_bound
+    return cov, interm_res_norm, interm_sec_rate
 
 def save_checkpoint(interm_results, step_count, dirname):
     """Store a checkpoint.
@@ -268,10 +256,10 @@ def load_checkpoint(dirname):
         interm_results = pickle.load(in_file)
     return interm_results, checkpoint
 
-def save_results(dirname, matrices, opt_cov, opt_sec_cap, snr):
+def save_results(dirname, mat_bob, mat_eve, opt_cov, opt_sec_cap, snr):
     results_file = os.path.join(dirname, "optimal_cov.mat")
-    results = {"opt_cov": opt_cov, "snr": snr, "H_bob": matrices[BOB],
-               "H_eve": matrices[EVE], "secrecy_capacity": opt_sec_cap}
+    results = {"opt_cov": opt_cov, "snr": snr, "H_bob": mat_bob,
+               "H_eve": mat_eve, "secrecy_capacity": opt_sec_cap}
     savemat(results_file, results)
 
 
@@ -307,8 +295,8 @@ def main(n=8, snr=0, plot=False, matrix=None):
     #            EVE: np.array([[.54, -.11], [-.93, -1.71]])}
     power = 10**(snr/10.)
     np.random.seed(100)
-    matrices = {BOB: np.random.randn(n, n),
-                EVE: np.random.randn(n, n)}
+    mat_bob = np.random.randn(n, n)
+    mat_eve = np.random.randn(n, n)
     dirname = "{}x{}-{}dB".format(n, n, snr)
     os.makedirs(dirname, exist_ok=True)
     setup_logging_config(dirname)
@@ -316,12 +304,12 @@ def main(n=8, snr=0, plot=False, matrix=None):
     logger.info("SNR: %f dB", snr)
     logger.debug("Power constraint: %f", power)
     opt_cov, interm_res_norm, interm_sec_norm, interm_upper_bound = (
-                        secrecy_capacity_wtc_loyka(matrices, power=power, t=1e3,
+                        secrecy_capacity_wtc_loyka(mat_bob, mat_eve, power=power, t=1e3,
                                                    step_size=2,# alpha=.01))
                                                    alpha=0.1, beta=0.5,
                                                    dirname=dirname))
-    opt_secrecy_capac = secrecy_rate(matrices, opt_cov)#*np.log(2)
-    save_results(dirname, matrices, opt_cov, opt_secrecy_capac, snr)
+    opt_secrecy_capac = secrecy_rate(mat_bob, mat_eve, opt_cov)#*np.log(2)
+    save_results(dirname, mat_bob, mat_eve, opt_cov, opt_secrecy_capac, snr)
     logger.debug(np.trace(opt_cov))
     logger.info("Secrecy capacity: %f bit", opt_secrecy_capac)
     #if plot:

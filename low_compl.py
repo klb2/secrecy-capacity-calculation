@@ -33,18 +33,6 @@ import matplotlib.pyplot as plt
 from loyka_algorithm import setup_logging_config
 
 
-def secrecy_rate(mat_bob, mat_eve, cov=None):
-    mat_bob = np.matrix(mat_bob)
-    mat_eve = np.matrix(mat_eve)
-    n_modes = len(mat_bob)
-    if cov is None:
-        cov = np.eye(n_modes)
-    _num = np.linalg.det(np.eye(n_modes) + mat_bob @ cov @ mat_bob.H)
-    _den = np.linalg.det(np.eye(n_modes) + mat_eve @ cov @ mat_eve.H)
-    _num = np.real(_num)  # determinant of a hermitian matrix is real. there might occur numerical issues
-    _den = np.real(_den)  # determinant of a hermitian matrix is real. there might occur numerical issues
-    return np.maximum(np.log2(_num/_den), 0)
-
 def secrecy_capacity_low_complexity(mat_bob, mat_eve, power=1, tol_eps=1e-6):
     time0 = time()
     # Get all parameters

@@ -1,3 +1,19 @@
+""" Utility functions for Loyka algorithm.
+
+Copyright (C) 2020 Karl-Ludwig Besser
+
+License:
+This program is licensed under the GPLv3 license. If you in any way use this
+code for research that results in publications, please cite our original
+article listed above.
+
+This program is distributed in the hope that it will be useful, but WITHOUT ANY
+WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A
+PARTICULAR PURPOSE.
+See the GNU General Public License for more details.
+
+Author: Karl-Ludwig Besser, Technische Universitaet Braunschweig
+"""
 import numpy as np
 from scipy import sparse
 
@@ -9,10 +25,13 @@ def vech_stack_cols_tril(matrix):
     idx = np.triu_indices_from(matrix)
     return np.reshape(matrix.T[idx], (-1, 1))
 
-def inv_vec(vector):
+def inv_vec(vector, shape=None):
     #m = (np.sqrt(8*len(vector)+1)-1)/2
-    m = int(np.sqrt(len(vector)))
-    return np.reshape(vector, (m, m), order="F")
+    if shape is None:
+        m = int(np.sqrt(len(vector)))
+        return np.reshape(vector, (m, m), order="F")
+    else:
+        return np.reshape(vector, shape, order="F")
 
 def inv_vech(vector):
     m = (np.sqrt(8*len(vector)+1)-1)/2
