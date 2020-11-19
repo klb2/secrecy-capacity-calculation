@@ -33,3 +33,14 @@ The code has been developed and tested with the following versions
 This program is licensed under the GPLv3 license. If you in any way use this
 code for research that results in publications, please cite the original
 articles listed above and this repository.
+
+You can use the following BibTeX entry for this repository
+```bibtex
+@online{BesserGitlab,
+  author = {Besser, Karl-Ludwig},
+  title = {Calculation of the Secrecy Capacity},
+  subtitle = {Python Implementation},
+  year = {2020},
+  url = {https://gitlab.com/klb2/secrecy-capacity-calculation},
+}
+```
