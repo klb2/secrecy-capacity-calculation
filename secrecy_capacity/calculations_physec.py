@@ -1,41 +1,23 @@
 import numpy as np
 from scipy import optimize
 
-BOB = "bob"
-EVE = "eve"
+from util import H, is_hermitian, is_pos_def
+
 
 def _calc_w(mat_bob, mat_eve):
-    #return {k: H(v)@v for k, v in matrices.items()}
-    return {BOB: H(mat_bob)@mat_bob, EVE: H(mat_eve)@mat_eve}
+    return (H(mat_bob)@mat_bob, H(mat_eve)@mat_eve)
 
-def H(x):
-    return x.conj().T
-
-def is_pos_def(x):
-    try:
-        np.linalg.cholesky(x)
-        return True
-    except np.linalg.LinAlgError as e:
-        print(e)
-        return False
-    #return np.all(np.linalg.eigvalsh(x) > 0)
-
-def is_fully_degraded(matrices):
-    W = _calc_w(matrices)
-    return is_pos_def(W[BOB] - W[EVE])
-
-def is_hermitian(matrix):
-    return np.all(H(matrix) == matrix)
+def is_fully_degraded(mat_bob, mat_eve):
+    W = _calc_w(mat_bob, mat_eve)
+    return is_pos_def(W[0] - W[1])
 
 def secrecy_rate(mat_bob, mat_eve, cov=None):
-    mat_bob = np.matrix(mat_bob)
-    mat_eve = np.matrix(mat_eve)
     n_bob, n_tx = np.shape(mat_bob)
     n_eve = len(mat_eve)
     if cov is None:
         cov = np.eye(n_modes)
-    _num = np.linalg.det(np.eye(n_bob) + mat_bob @ cov @ mat_bob.H)
-    _den = np.linalg.det(np.eye(n_eve) + mat_eve @ cov @ mat_eve.H)
+    _num = np.linalg.det(np.eye(n_bob) + mat_bob @ cov @ H(mat_bob))
+    _den = np.linalg.det(np.eye(n_eve) + mat_eve @ cov @ H(mat_eve))
     _num = np.real(_num)  # determinant of a hermitian matrix is real. there might occur numerical issues
     _den = np.real(_den)  # determinant of a hermitian matrix is real. there might occur numerical issues
     return np.maximum(np.log2(_num/_den), 0)
