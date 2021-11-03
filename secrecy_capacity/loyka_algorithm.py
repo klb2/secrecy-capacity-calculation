@@ -161,8 +161,8 @@ def cov_secrecy_capacity_loyka(mat_bob, mat_eve, t=1e3, alpha=0.3, beta=0.5, ste
     interm_res_norm = []
     interm_sec_rate = []
     #interm_upper_bound = []
-    #while 1./t > 1e-8:#eps:
-    while t < 1e6:
+    while 1./t > eps:#1e-8:#eps:
+    #while t < 1e6:
         t_start = time()
         LOGGER.info("Starting iteration: %d", step_count)
         #print(step_count)

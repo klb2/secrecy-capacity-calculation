@@ -20,7 +20,7 @@ def secrecy_rate(mat_bob, mat_eve, cov=None):
     _den = np.linalg.det(np.eye(n_eve) + mat_eve @ cov @ H(mat_eve))
     _num = np.real(_num)  # determinant of a hermitian matrix is real. there might occur numerical issues
     _den = np.real(_den)  # determinant of a hermitian matrix is real. there might occur numerical issues
-    return np.maximum(np.log2(_num/_den), 0)
+    return np.maximum(.5*np.log2(_num/_den), 0)
 
 def upper_bound_rank_cov(matrices):
     """Taken from Proposition 2 of 'The Secrecy Capacity of Gaussian MIMO
