@@ -23,31 +23,31 @@ Author: Karl-Ludwig Besser, Technische Universitaet Braunschweig
 
 from time import time
 import logging
-from logging.config import dictConfig
 import os
 import pickle
 
 import numpy as np
-from scipy import sparse
-from scipy.io import savemat
-import matplotlib.pyplot as plt
 
-from calculations_physec import _calc_w, secrecy_rate, BOB, EVE, H
-from util_loyka import vec_stack_cols, vech_stack_cols_tril, duplication_matrix_fast, inv_vec, inv_vech
+from .calculations_physec import _calc_w, secrecy_rate
+from .util import vec_stack_cols, vech_stack_cols_tril, duplication_matrix_fast, inv_vec, inv_vech, H
+
+
+LOGGER = logging.getLogger("loyka_algorithm")
+
 
 def opt_func_secrecy_capacity(mat_bob, mat_eve, cov, cov_noise_K):
     w = _calc_w(mat_bob, mat_eve)
     h_stack = np.vstack((mat_bob, mat_eve))
     rx_modes, tx_modes = np.shape(h_stack)
     _num = np.linalg.det(np.eye(tx_modes) + np.linalg.inv(cov_noise_K) @ h_stack @ cov @ H(h_stack))
-    _den = np.linalg.det(np.eye(len(cov)) + w[EVE]@cov)
+    _den = np.linalg.det(np.eye(len(cov)) + w[1]@cov)
     return .5*np.log2(_num/_den)
 
 def upper_bound_secrecy_capacity(mat_bob, mat_eve, cov, cov_noise_K):
     w = _calc_w(mat_bob, mat_eve)
     h_stack = np.vstack((mat_bob, mat_eve))
     _num = np.linalg.det(np.eye(len(h_stack)) + np.linalg.inv(cov_noise_K) @ h_stack @ cov @ H(h_stack))
-    _den = np.linalg.det(np.eye(len(cov)) + w[EVE] @ cov)
+    _den = np.linalg.det(np.eye(len(cov)) + w[1] @ cov)
     return np.maximum(np.log2(_num/_den), 0)
 
 def _calc_q_w_z(mat_bob, mat_eve, cov, cov_noise_K):
@@ -58,9 +58,9 @@ def _calc_q_w_z(mat_bob, mat_eve, cov, cov_noise_K):
     inv_cov_noise_K = np.linalg.inv(cov_noise_K)
     w_stack = H(h_stack) @ inv_cov_noise_K @ h_stack
     #z1 = np.linalg.inv(np.eye(len(cov)) + w_stack @ cov) @ w_stack
-    #z2 = np.linalg.inv(np.eye(len(cov)) + w[EVE] @ cov) @ w[EVE]
+    #z2 = np.linalg.inv(np.eye(len(cov)) + w[1] @ cov) @ w[1]
     z1 = np.linalg.solve(np.eye(len(cov)) + w_stack @ cov, w_stack)
-    z2 = np.linalg.solve(np.eye(len(cov)) + w[EVE] @ cov, w[EVE])
+    z2 = np.linalg.solve(np.eye(len(cov)) + w[1] @ cov, w[1])
     return h_stack, q, w_stack, z1, z2, inv_cov_noise_K
 
 def _improved_kron(A, B):
@@ -124,20 +124,17 @@ def get_cov_matrices(w, len_z, len_x):
     cov_noise_K = np.block([[np.eye(len(k21)), H(k21)], [k21, np.eye(len(k21))]])
     return cov, cov_noise_K
 
-def secrecy_capacity_wtc_loyka(mat_bob, mat_eve, t=1e3, alpha=0.3, beta=0.5, step_size=2, n_max=25, power=10, eps=1e-10, dirname=None):
-    logger = logging.getLogger('algorithm')
+def cov_secrecy_capacity_loyka(mat_bob, mat_eve, t=1e3, alpha=0.3, beta=0.5, step_size=2, n_max=25, power=10, eps=1e-10, dirname=None, return_interm_results=False):
     time0 = time()
     n_bob, m_streams = np.shape(mat_bob)
     n_eve, m_streams = np.shape(mat_eve)
-    logger.debug("Matrices have shape: %d x %d", n_bob, m_streams)
-    if dirname is None:
-        dirname = "{}x{}".format(n_bob, m_streams)
+    LOGGER.debug("Matrices have shape: %d x %d", n_bob, m_streams)
 
     B = power
     A = np.hstack((vech_stack_cols_tril(np.eye(m_streams)).T, np.zeros((1, n_bob*n_eve))))
 
     #if checkpoint:
-    logger.info("Prepare initial values")
+    LOGGER.info("Prepare initial values.")
     cov = power/m_streams*np.eye(m_streams)
     k21 = np.zeros((n_eve, n_bob))
     x = vech_stack_cols_tril(cov)
@@ -158,7 +155,7 @@ def secrecy_capacity_wtc_loyka(mat_bob, mat_eve, t=1e3, alpha=0.3, beta=0.5, ste
     Dn = Dn.toarray()
 
     time1 = time()
-    logger.debug("Preparing everything took: %.3f sec", time1-time0)
+    LOGGER.debug("Preparing everything took: %.3f sec", time1-time0)
 
     # Algorithm 3 from the Paper: Barrier Method
     interm_res_norm = []
@@ -167,7 +164,7 @@ def secrecy_capacity_wtc_loyka(mat_bob, mat_eve, t=1e3, alpha=0.3, beta=0.5, ste
     #while 1./t > 1e-8:#eps:
     while t < 1e6:
         t_start = time()
-        logger.info("Starting iteration: %d", step_count)
+        LOGGER.info("Starting iteration: %d", step_count)
         #print(step_count)
         newton_counter = 1
         # Algorithm 2: Newton method for minimax optimization
@@ -216,23 +213,29 @@ def secrecy_capacity_wtc_loyka(mat_bob, mat_eve, t=1e3, alpha=0.3, beta=0.5, ste
             #interm_upper_bound.append(upper_bound_secrecy_capacity(mat_bob, mat_eve, cov, cov_noise_K)*np.log(2))
 
         t_end = time()
-        logger.debug("Iteration took %.3f", t_end-t_start)
-        logger.info("Number of newton steps: %d", newton_counter)
+        LOGGER.debug("Iteration took %.3f", t_end-t_start)
+        LOGGER.info("Number of newton steps: %d", newton_counter)
 
         t = step_size*t
-       # interm_results["cov"] = cov
-       # interm_results["x"] = x
-       # interm_results["y"] = y
-       # interm_results["lam"] = lam
-       # interm_results["k21"] = k21
-       # interm_results["t"] = t
-        #save_checkpoint(interm_results, step_count, dirname)
-        logger.debug("Saved checkpoint")
+        if dirname is not None:
+            interm_results = {}
+            interm_results["cov"] = cov
+            interm_results["x"] = x
+            interm_results["y"] = y
+            interm_results["lam"] = lam
+            interm_results["k21"] = k21
+            interm_results["t"] = t
+            save_checkpoint(interm_results, step_count, dirname)
+            LOGGER.debug("Saved checkpoint")
         step_count = step_count + 1
+
     time2 = time()
-    logger.info("Finished calculations. Total time: %.3f sec.", time2-time0)
-    logger.debug("Norm of final residual: %e", np.linalg.norm(res_w))
-    return cov, interm_res_norm, interm_sec_rate
+    LOGGER.info("Finished calculations. Total time: %.3f sec.", time2-time0)
+    LOGGER.debug("Norm of final residual: %e", np.linalg.norm(res_w))
+    if return_interm_results:
+        return cov, (interm_res_norm, interm_sec_rate)
+    else:
+        return cov
 
 def save_checkpoint(interm_results, step_count, dirname):
     """Store a checkpoint.
@@ -245,6 +248,7 @@ def save_checkpoint(interm_results, step_count, dirname):
     with open(_filename, 'wb') as out_file:
         pickle.dump(interm_results, out_file)
 
+
 def load_checkpoint(dirname):
     _checkpoints = [k for k in os.listdir(dirname) if k.endswith(".pkl")]
     _numbers = [int(os.path.splitext(k)[0].split("-")[1]) for k in _checkpoints]
@@ -255,81 +259,3 @@ def load_checkpoint(dirname):
     with open(_filename, 'rb') as in_file:
         interm_results = pickle.load(in_file)
     return interm_results, checkpoint
-
-def save_results(dirname, mat_bob, mat_eve, opt_cov, opt_sec_cap, snr):
-    results_file = os.path.join(dirname, "optimal_cov.mat")
-    results = {"opt_cov": opt_cov, "snr": snr, "H_bob": mat_bob,
-               "H_eve": mat_eve, "secrecy_capacity": opt_sec_cap}
-    savemat(results_file, results)
-
-
-def setup_logging_config(dirname):
-    logging_config = dict(
-        version = 1,
-        formatters = {
-                      'f': {'format': "%(asctime)s - [%(levelname)8s]: %(message)s"}
-                     },
-        handlers = {'console': {'class': 'logging.StreamHandler',
-                                'formatter': 'f',
-                                'level': logging.DEBUG
-                               },
-                    'file': {'class': 'logging.FileHandler',
-                             'formatter': 'f',
-                             'level': logging.DEBUG,
-                             'filename': os.path.join(dirname, "main.log")
-                            },
-                   },
-        loggers = {"main": {'handlers': ['console', 'file'],
-                            'level': logging.DEBUG,
-                           },
-                   "algorithm": {'handlers': ['console', 'file'],
-                                 'level': logging.DEBUG,
-                                },
-                  }
-        )
-    dictConfig(logging_config)
-
-
-def main(n=8, snr=0, plot=False, matrix=None):
-    #matrices = {BOB: np.array([[.77, -.3], [-.32, -.64]]),
-    #            EVE: np.array([[.54, -.11], [-.93, -1.71]])}
-    power = 10**(snr/10.)
-    np.random.seed(100)
-    mat_bob = np.random.randn(n, n)
-    mat_eve = np.random.randn(n, n)
-    dirname = "{}x{}-{}dB".format(n, n, snr)
-    os.makedirs(dirname, exist_ok=True)
-    setup_logging_config(dirname)
-    logger = logging.getLogger('main')
-    logger.info("SNR: %f dB", snr)
-    logger.debug("Power constraint: %f", power)
-    opt_cov, interm_res_norm, interm_sec_norm, interm_upper_bound = (
-                        secrecy_capacity_wtc_loyka(mat_bob, mat_eve, power=power, t=1e3,
-                                                   step_size=2,# alpha=.01))
-                                                   alpha=0.1, beta=0.5,
-                                                   dirname=dirname))
-    opt_secrecy_capac = secrecy_rate(mat_bob, mat_eve, opt_cov)#*np.log(2)
-    save_results(dirname, mat_bob, mat_eve, opt_cov, opt_secrecy_capac, snr)
-    logger.debug(np.trace(opt_cov))
-    logger.info("Secrecy capacity: %f bit", opt_secrecy_capac)
-    #if plot:
-    plt.semilogy(interm_res_norm)
-    plt.savefig(os.path.join(dirname, "interm_res.png"))
-    plt.figure()
-    plt.plot(interm_sec_norm)
-    plt.plot(interm_upper_bound)
-    plt.xlabel("Newton Step")
-    plt.ylabel("Secrecy Rate")
-    plt.savefig(os.path.join(dirname, "sec_rate.png"))
-
-if __name__ == "__main__":
-    import argparse
-    parser = argparse.ArgumentParser()
-    parser.add_argument("-n", type=int, help="Number of modes", default=2)
-    parser.add_argument("-s", "--snr", type=float, help="SNR", default=10)
-    parser.add_argument("--plot", action='store_true')
-    parser.add_argument("--matrix", help="Mat-file with matrices")
-    args = vars(parser.parse_args())
-    main(**args)
-    if args['plot']:
-        plt.show()

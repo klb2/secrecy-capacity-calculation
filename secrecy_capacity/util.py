@@ -1,3 +1,20 @@
+""" Utility functions.
+
+Copyright (C) 2020-2021 Karl-Ludwig Besser
+
+License:
+This program is licensed under the GPLv3 license. If you in any way use this
+code for research that results in publications, please cite our original
+article listed above.
+
+This program is distributed in the hope that it will be useful, but WITHOUT ANY
+WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A
+PARTICULAR PURPOSE.
+See the GNU General Public License for more details.
+
+Author: Karl-Ludwig Besser, Technische Universitaet Braunschweig
+"""
+
 import numpy as np
 from scipy import sparse
 

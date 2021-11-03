@@ -1,7 +1,7 @@
 import numpy as np
 from scipy import optimize
 
-from util import H, is_hermitian, is_pos_def
+from .util import H, is_hermitian, is_pos_def
 
 
 def _calc_w(mat_bob, mat_eve):
