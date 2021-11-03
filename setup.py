@@ -20,6 +20,13 @@ setup(
         'Documentation': "https://secrecy-capacity-calculation.readthedocs.io",
         'Source Code': 'https://github.com/klb2/secrecy-capacity-calculation'
         },
+    classifiers = [
+        "Programming Language :: Python :: 3",
+        "Intended Audience :: Science/Research",
+        "Intended Audience :: Telecommunications Industry",
+        "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
+        "Topic :: Scientific/Engineering",
+        ],
     packages=find_packages(),
     tests_require=['pytest', 'tox'],
     install_requires=['numpy', 'scipy'],
