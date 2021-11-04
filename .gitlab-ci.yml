@@ -1,0 +1,50 @@
+image: fkrull/multi-python:bionic
+
+# Change pip's cache directory to be inside the project directory since we can
+# only cache local items.
+variables:
+  PIP_CACHE_DIR: "$CI_PROJECT_DIR/.cache"
+
+# Pip's cache doesn't store the python packages
+# https://pip.pypa.io/en/stable/reference/pip_install/#caching
+#
+# If you want to also cache the installed packages, you have to install
+# them in a virtualenv and cache it as well.
+cache:
+  paths:
+    - .cache/pip
+    - venv/
+
+before_script:
+  - python3 -V # Print out python version for debugging
+  - pip3 install virtualenv
+  - pip3 install -r requirements.txt
+
+test:
+  script:
+    #- pip3 install .
+  - pip3 install tox flake8 pytest pytest-html
+  - tox
+
+build:
+  script:
+    - pip3 install setuptools wheel
+    - python3 setup.py sdist bdist_wheel
+  artifacts:
+    paths:
+    - dist/*.whl
+  only:
+    - master
+
+pages:
+  script:
+    - pip3 install .
+    - cd doc
+    - pip3 install -r requirements.txt
+    - make html
+    - mv build/html/ ../public/
+  artifacts:
+    paths:
+      - public
+  only:
+    - master
