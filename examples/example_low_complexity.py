@@ -1,6 +1,16 @@
+import os
+import logging
+
+import numpy as np
+import matplotlib.pyplot as plt
+
+from secrecy_capacity import cov_secrecy_capacity_low_complexity
+from secrecy_capacity.calculations_physec import secrecy_rate
+
+from example_util import setup_logging_config, save_results
 
 
-def main(n=8, snr=0, precoding=False, matrix=None):
+def main(n=8, snr=0):
     np.random.seed(100)
     #matrices = {BOB: np.array([[.77, -.3], [-.32, -.64]]),
     #            EVE: np.array([[.54, -.11], [-.93, -1.71]])}
@@ -17,10 +27,7 @@ def main(n=8, snr=0, precoding=False, matrix=None):
         power = 10**(_snr/10.)
         logger.info("SNR: %f dB", _snr)
         logger.debug("Power constraint: %f", power)
-        t1 = time()
-        _opt_cov = secrecy_capacity_low_complexity(mat_bob, mat_eve, power)
-        t2 = time()
-        logger.info("It took %f s", (t2-t1))
+        _opt_cov = cov_secrecy_capacity_low_complexity(mat_bob, mat_eve, power)
         _opt_secrecy_capac = secrecy_rate(mat_bob, mat_eve, _opt_cov)#*np.log(2)
         logger.debug("Trace of Cov: %s", np.trace(_opt_cov))
         #logger.debug(opt_cov)
@@ -33,8 +40,7 @@ def main(n=8, snr=0, precoding=False, matrix=None):
         _sec_uni = secrecy_rate(mat_bob, mat_eve, _uni_cov)
         sec_rate_uniform.append(_sec_uni)
         logger.info("Secrecy rate with uniform power: %f bit", _sec_uni)
-    save_results(dirname, mat_bob, mat_eve, opt_cov, opt_secrecy_capac, snr,
-                 sec_rate_uniform)
+    save_results(dirname, mat_bob, mat_eve, opt_cov, opt_secrecy_capac, snr)
     plt.plot(snr, opt_secrecy_capac, 'o-', label="Secrecy Capacity")
     plt.plot(snr, sec_rate_uniform, 'o-', label="Uniform Power Allocation")
     plt.xlabel("SNR [dB]")
@@ -44,22 +50,10 @@ def main(n=8, snr=0, precoding=False, matrix=None):
     plt.savefig(os.path.join(dirname, "results.png"), dpi=200)
 
 
-def save_results(dirname, mat_bob, mat_eve, opt_cov, opt_sec_cap, snr, sec_rate_uniform):
-    import pandas as pd
-    dat_file = os.path.join(dirname, "capac_results.dat")
-    results = {"snr": snr, "secCapac": opt_sec_cap, "uniformPow": sec_rate_uniform}
-    pd.DataFrame.from_dict(results).to_csv(dat_file, sep='\t', index=False)
-    results.update({"opt_cov": opt_cov, "H_bob": mat_bob, "H_eve": mat_eve})
-    results_file = os.path.join(dirname, "results.mat")
-    savemat(results_file, results)
-
-
 if __name__ == "__main__":
     import argparse
     parser = argparse.ArgumentParser()
     parser.add_argument("-n", type=int, help="Number of modes", default=2)
     parser.add_argument("-s", "--snr", type=float, help="SNR", nargs="+", default=[10])
-    parser.add_argument("--precoding", action='store_true')
-    parser.add_argument("--matrix", help="Mat-file with matrices")
     args = vars(parser.parse_args())
     main(**args)
