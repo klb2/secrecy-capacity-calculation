@@ -11,7 +11,37 @@ def is_fully_degraded(mat_bob, mat_eve):
     W = _calc_w(mat_bob, mat_eve)
     return is_pos_def(W[0] - W[1])
 
-def secrecy_rate(mat_bob, mat_eve, cov=None):
+def secrecy_rate(mat_bob, mat_eve, cov=None) -> float:
+    """Calculation of the secrecy rate for given realizations of AWGN channels.
+
+    Assuming AWGN fading channels to both Bob and Eve, this function calculates
+    the secrecy rate for a given fading realization and covariance matrix at
+    the transmitter.
+    
+    Let :math:`H`, :math:`G` be the channel matrices to Bob and Eve,
+    respectively, and :math:`Q` the covariance matrix at Alice.
+    The secrecy rate :math:`R_S` is then given as
+
+    .. math:: R_S = \max\left\{\log_2\left(I + H Q H^H \\right)-\log_2\left(I + G Q G^H\\right), 0\\right\}
+
+    
+    Parameters
+    ----------
+    mat_bob : float, complex or numpy.array
+        Matrix or scalar of Bob's channel realizations.
+
+    mat_eve : float, complex or numpy.array
+        Matrix or scalar of Eve's channel realizations.
+
+    cov : float or np.array
+        Covariance matrix (or transmit power) at Alice. If ``None``, the
+        identity matrix will be used.
+
+    Returns
+    -------
+    sec_rate : float
+        Secrecy rate :math:`R_S` as described above.
+    """
     if np.isscalar(mat_bob):
         mat_bob = np.array([[mat_bob]])
     if np.isscalar(mat_eve):
@@ -25,6 +55,7 @@ def secrecy_rate(mat_bob, mat_eve, cov=None):
     _num = np.real(_num)  # determinant of a hermitian matrix is real. there might occur numerical issues
     _den = np.real(_den)  # determinant of a hermitian matrix is real. there might occur numerical issues
     return np.maximum(np.log2(_num/_den), 0)
+
 
 def upper_bound_rank_cov(matrices):
     """Taken from Proposition 2 of 'The Secrecy Capacity of Gaussian MIMO

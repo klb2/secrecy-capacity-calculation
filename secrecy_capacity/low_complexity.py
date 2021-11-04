@@ -33,7 +33,41 @@ from .util import H
 LOGGER = logging.getLogger("low_complexity_algorithm")
 
 
-def cov_secrecy_capacity_low_complexity(mat_bob, mat_eve, power=1, tol_eps=1e-6):
+def cov_secrecy_capacity_low_complexity(mat_bob, mat_eve, power: float=1,
+                                        tol_eps: float=1e-12):
+    """Optimal covariance matrix (low complexity implementation)
+
+    Calculate the optimal covariance matrix for a fading wiretap channel using
+    the low complexity algorithm from [1]_.
+
+    Parameters
+    ----------
+    mat_bob : numpy.array
+        Matrix with the channel realizations of Bob's channels.
+
+    mat_eve : numpy.array
+        Matrix with the channel realizations of Eve's channels.
+
+    power : float
+        Power contraint at the transmitter.
+
+    tol_eps : float
+        Tolerance level for the inner algorithm, cf. *Algorithm 1* in [1]_.
+
+    
+    Returns
+    -------
+    cov : numpy.array
+        Optimal covariance matrix which maximizes the secrecy rate.
+
+
+    References
+    ----------
+    .. [1] T. Van Nguyen, Q.-D. Vu, M. Juntti, and L.-N. Tran, "A
+           Low-Complexity Algorithm for Achieving Secrecy Capacity in MIMO
+           Wiretap Channels," in ICC 2020 - 2020 IEEE International Conference
+           on Communications (ICC), 2020.
+    """
     time0 = time()
     # Get all parameters
     n_rx, n_tx = np.shape(mat_bob)
@@ -61,7 +95,7 @@ def cov_secrecy_capacity_low_complexity(mat_bob, mat_eve, power=1, tol_eps=1e-6)
         _obj_inner_new = 2
         while abs(_obj_inner_new - _obj_inner_old) > 1e-4:
             _obj_inner_old = _obj_inner_new
-            mat_w = _algorithm1(h_bar, mat_k, mat_q, power=power)  # W_{n}
+            mat_w = _algorithm1(h_bar, mat_k, mat_q, power=power, tol_eps=tol_eps)  # W_{n}
             mat_t = np.linalg.inv(mat_k + h_bar @ mat_w @ H(h_bar))  # T_{n}
             mat_t_bar = mat_t[-n_eve:, :n_rx]  # \bar{T}_{n}
             _rho, mat_u = np.linalg.eigh(mat_t_bar @ H(mat_t_bar))  # (16)

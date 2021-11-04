@@ -1,0 +1,1 @@
+.. automodapi:: secrecy_capacity

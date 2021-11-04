@@ -64,6 +64,12 @@ Thumbs.db
 Pipfile.lock
 .ipynb_checkpoints
 
+# setup.py working directory
+build
+# sphinx build directory
+_build
+doc/build
+doc/cdoc/build
 
 # Example Files
 ###############

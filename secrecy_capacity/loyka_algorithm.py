@@ -124,7 +124,54 @@ def get_cov_matrices(w, len_z, len_x):
     cov_noise_K = np.block([[np.eye(len(k21)), H(k21)], [k21, np.eye(len(k21))]])
     return cov, cov_noise_K
 
-def cov_secrecy_capacity_loyka(mat_bob, mat_eve, t=1e3, alpha=0.3, beta=0.5, step_size=2, n_max=25, power=10, eps=1e-10, dirname=None, return_interm_results=False):
+def cov_secrecy_capacity_loyka(mat_bob, mat_eve, power: float=10, t: float=1e3,
+                               alpha: float=0.3, beta: float=0.5,
+                               step_size: float=2, n_max: float=25,
+                               eps: float=1e-10, dirname: str=None,
+                               return_interm_results: bool=False):
+    """Optimal covariance matrix (Loyka's algorithm)
+
+    Calculate the optimal covariance matrix for a fading wiretap channel using
+    the algorithm from [1]_.
+
+    Parameters
+    ----------
+    mat_bob : numpy.array
+        Matrix with the channel realizations of Bob's channels.
+
+    mat_eve : numpy.array
+        Matrix with the channel realizations of Eve's channels.
+
+    power : float
+        Power contraint at the transmitter.
+
+    alpha : float
+        Parameter :math:`\\alpha` with :math:`0<\\alpha<0.5`, which is a
+        percent of the linear decrease in the residual one is prepared to
+        accept at each step, cf. *Algorithm 1* in [1_].
+
+    beta : float
+        Parameter :math:`\\beta` with :math:`0 < \\beta < 1`, is a parameter
+        controlling the reduction in step size at each iteration of the
+        algorithm, cf. *Algorithm 1* in [1_].
+
+    tol_eps : float
+        Tolerance level for the inner algorithm, cf. *Algorithm 1* in [1]_.
+
+    
+    Returns
+    -------
+    cov : numpy.array
+        Optimal covariance matrix which maximizes the secrecy rate.
+
+
+    References
+    ----------
+    .. [1] S. Loyka and C. D. Charalambous, "An Algorithm for Global
+           Maximization of Secrecy Rates in Gaussian MIMO Wiretap Channels," IEEE
+           Trans. Commun., vol. 63, no. 6, pp. 2288–2299, Jun. 2015.
+    """
+    _check_parameters_loyka(alpha, beta, eps, t, step_size)
     time0 = time()
     n_bob, m_streams = np.shape(mat_bob)
     n_eve, m_streams = np.shape(mat_eve)
@@ -236,6 +283,18 @@ def cov_secrecy_capacity_loyka(mat_bob, mat_eve, t=1e3, alpha=0.3, beta=0.5, ste
         return cov, (interm_res_norm, interm_sec_rate)
     else:
         return cov
+
+def _check_parameters_loyka(alpha, beta, eps, t, step_size):
+    if not 0 < alpha < .5:
+        raise ValueError("Alpha needs to be between 0 and 0.5.")
+    if not 0 < beta < 1:
+        raise ValueError("Beta needs to be between 0 and 1.")
+    if not eps > 0:
+        raise ValueError("Epsilon needs to be positive.")
+    if not t > 0:
+        raise ValueError("t needs to be positive.")
+    if not step_size > 1:
+        raise ValueError("The step size mu needs to be greater than 1.")
 
 def save_checkpoint(interm_results, step_count, dirname):
     """Store a checkpoint.
