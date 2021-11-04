@@ -38,7 +38,7 @@ def cov_secrecy_capacity_low_complexity(mat_bob, mat_eve, power: float=1,
     """Optimal covariance matrix (low complexity implementation)
 
     Calculate the optimal covariance matrix for a fading wiretap channel using
-    the low complexity algorithm from [1]_.
+    the low complexity algorithm from [1_].
 
     Parameters
     ----------
@@ -52,7 +52,7 @@ def cov_secrecy_capacity_low_complexity(mat_bob, mat_eve, power: float=1,
         Power contraint at the transmitter.
 
     tol_eps : float
-        Tolerance level for the inner algorithm, cf. *Algorithm 1* in [1]_.
+        Tolerance level for the inner algorithm, cf. *Algorithm 1* in [1_].
 
     
     Returns

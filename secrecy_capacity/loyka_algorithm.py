@@ -126,13 +126,13 @@ def get_cov_matrices(w, len_z, len_x):
 
 def cov_secrecy_capacity_loyka(mat_bob, mat_eve, power: float=10, t: float=1e3,
                                alpha: float=0.3, beta: float=0.5,
-                               step_size: float=2, n_max: float=25,
-                               eps: float=1e-10, dirname: str=None,
+                               mu: float=2, eps: float=1e-10,
+                               dirname: str=None,
                                return_interm_results: bool=False):
     """Optimal covariance matrix (Loyka's algorithm)
 
     Calculate the optimal covariance matrix for a fading wiretap channel using
-    the algorithm from [1]_.
+    the algorithm from [1_].
 
     Parameters
     ----------
@@ -146,23 +146,43 @@ def cov_secrecy_capacity_loyka(mat_bob, mat_eve, power: float=10, t: float=1e3,
         Power contraint at the transmitter.
 
     alpha : float
-        Parameter :math:`\\alpha` with :math:`0<\\alpha<0.5`, which is a
+        Parameter :math:`\\alpha` with :math:`0<\\alpha<0.5` is a
         percent of the linear decrease in the residual one is prepared to
         accept at each step, cf. *Algorithm 1* in [1_].
 
     beta : float
-        Parameter :math:`\\beta` with :math:`0 < \\beta < 1`, is a parameter
+        Parameter :math:`\\beta` with :math:`0 < \\beta < 1` is a parameter
         controlling the reduction in step size at each iteration of the
         algorithm, cf. *Algorithm 1* in [1_].
 
-    tol_eps : float
-        Tolerance level for the inner algorithm, cf. *Algorithm 1* in [1]_.
+    mu : float
+        Parameter :math:`\\mu` with :math:`\\mu > 1` defines the multiplicator
+        in the barrier method, cf. *Algorithm 3* in [1_].
+
+    eps : float
+        Tolerance level for the outer barrier algorithm, cf. *Algorithm 3* in
+        [1_].
+
+    dirname : str
+        Path of the directory in which checkpoints and log should be saved. If
+        ``None``, no intermediate results will be saved.
+
+    return_interm_results : bool
+        If ``True``, the history/intermediate results of the algorithm will be
+        return together with the optimal covariance matrix. **This changes the
+        return structure of the function!**
 
     
     Returns
     -------
     cov : numpy.array
         Optimal covariance matrix which maximizes the secrecy rate.
+
+    (interm_res_norm, interm_sec_rate) : tuple of list of float
+        **Only returned, when** ``return_interm_results == True``!  
+        Tuple that represents the history of the algorithm. The norm of the
+        residual is stored in ``interm_res_norm``, while the intermediate
+        secrecy rates are in ``interm_sec_rate``.
 
 
     References
@@ -171,7 +191,7 @@ def cov_secrecy_capacity_loyka(mat_bob, mat_eve, power: float=10, t: float=1e3,
            Maximization of Secrecy Rates in Gaussian MIMO Wiretap Channels," IEEE
            Trans. Commun., vol. 63, no. 6, pp. 2288–2299, Jun. 2015.
     """
-    _check_parameters_loyka(alpha, beta, eps, t, step_size)
+    _check_parameters_loyka(alpha, beta, eps, t, mu)
     time0 = time()
     n_bob, m_streams = np.shape(mat_bob)
     n_eve, m_streams = np.shape(mat_eve)
@@ -263,7 +283,7 @@ def cov_secrecy_capacity_loyka(mat_bob, mat_eve, power: float=10, t: float=1e3,
         LOGGER.debug("Iteration took %.3f", t_end-t_start)
         LOGGER.info("Number of newton steps: %d", newton_counter)
 
-        t = step_size*t
+        t = mu*t
         if dirname is not None:
             interm_results = {}
             interm_results["cov"] = cov
@@ -284,7 +304,7 @@ def cov_secrecy_capacity_loyka(mat_bob, mat_eve, power: float=10, t: float=1e3,
     else:
         return cov
 
-def _check_parameters_loyka(alpha, beta, eps, t, step_size):
+def _check_parameters_loyka(alpha, beta, eps, t, mu):
     if not 0 < alpha < .5:
         raise ValueError("Alpha needs to be between 0 and 0.5.")
     if not 0 < beta < 1:
@@ -293,8 +313,8 @@ def _check_parameters_loyka(alpha, beta, eps, t, step_size):
         raise ValueError("Epsilon needs to be positive.")
     if not t > 0:
         raise ValueError("t needs to be positive.")
-    if not step_size > 1:
-        raise ValueError("The step size mu needs to be greater than 1.")
+    if not mu > 1:
+        raise ValueError("The mu needs to be greater than 1.")
 
 def save_checkpoint(interm_results, step_count, dirname):
     """Store a checkpoint.
