@@ -10,6 +10,7 @@ BOB = np.array([[.77, -.3], [-.32, -.64]])
 EVE = np.array([[.54, -.11], [-.93, -1.71]])
 EXPECT_SEC_CAP = 0.717/np.log(2)  # estimated from Fig. 3 in Loykas paper in bits
 
+
 def test_loyka():
     cov = loyka_algorithm.cov_secrecy_capacity_loyka(BOB, EVE, power=10,
             t=1e5, alpha=.3, beta=.5, eps=1e-8, dirname=None, return_interm_results=False)
