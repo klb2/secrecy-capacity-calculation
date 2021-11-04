@@ -63,3 +63,9 @@ Thumbs.db
 
 Pipfile.lock
 .ipynb_checkpoints
+
+
+# Example Files
+###############
+examples/*dB/
+examples/LC-*/
