@@ -4,27 +4,37 @@ This repository contains Python implementation of two algorithms that allow a
 (numerical) calculation of the secrecy capacity of wiretap channels.
 
 The two algorithms are taken from the following publications:
-> S. Loyka and C. D. Charalambous, "An Algorithm for Global Maximization of Secrecy Rates in Gaussian MIMO Wiretap Channels," IEEE Trans. Commun., vol. 63, no. 6, pp. 2288–2299, Jun. 2015.
+> [S. Loyka and C. D. Charalambous, "An Algorithm for Global Maximization of Secrecy Rates in Gaussian MIMO Wiretap Channels," IEEE Trans. Commun., vol. 63, no. 6, pp. 2288–2299, Jun. 2015.](https://doi.org/10.1109/TCOMM.2015.2424235)
 
-> T. Van Nguyen, Q.-D. Vu, M. Juntti, and L.-N. Tran, "A Low-Complexity Algorithm for Achieving Secrecy Capacity in MIMO Wiretap Channels," in ICC 2020 - 2020 IEEE International Conference on Communications (ICC), 2020, pp. 1–6.
+> [T. Van Nguyen, Q.-D. Vu, M. Juntti, and L.-N. Tran, "A Low-Complexity Algorithm for Achieving Secrecy Capacity in MIMO Wiretap Channels," in ICC 2020 - 2020 IEEE International Conference on Communications (ICC), 2020.](https://doi.org/10.1109/ICC40277.2020.9149178)
+
+
+## Installation
+If you want to install the latest version, you can install the
+package from source
+```bash
+git clone https://gitlab.com/klb2/secrecy-capacity-calculation.git
+cd secrecy_capacity
+git checkout dev  # only if you want to unstable version
+pip install .
+```
 
 
 ## Usage
-
-The source code is written in Python 3.
+Some examples are provided in the `examples/` directory.
 You can run the code locally or using a service like Binder. If you use Binder,
 you do not need a local Python installation and you can simply run the scripts
 in your browser.
 
-[![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gl/klb2%2Fsecrecy-capacity-calculation/master?filepath=Secrecy%20Capacity.ipynb)
+[![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gl/klb2%2Fsecrecy-capacity-calculation/master?filepath=examples/Secrecy%20Capacity.ipynb)
 
 
 ## Version
 The code has been developed and tested with the following versions
 
-- Python 3.8
+- Python 3.9
 - numpy 1.19
-- scipy 1.5
+- scipy 1.6
 - matplotlib 3.3
 - Jupyter 1.0
 
@@ -38,9 +48,10 @@ You can use the following BibTeX entry for this repository
 ```bibtex
 @online{BesserGitlab,
   author = {Besser, Karl-Ludwig},
-  title = {Calculation of the Secrecy Capacity},
+  title = {Algorithms to calculate the secrecy capacity},
   subtitle = {Python Implementation},
-  year = {2020},
+  year = {2021},
   url = {https://gitlab.com/klb2/secrecy-capacity-calculation},
+  version = {0.1.0},
 }
 ```
