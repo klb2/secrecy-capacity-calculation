@@ -12,10 +12,14 @@ def is_fully_degraded(mat_bob, mat_eve):
     return is_pos_def(W[0] - W[1])
 
 def secrecy_rate(mat_bob, mat_eve, cov=None):
+    if np.isscalar(mat_bob):
+        mat_bob = np.array([[mat_bob]])
+    if np.isscalar(mat_eve):
+        mat_eve = np.array([[mat_eve]])
     n_bob, n_tx = np.shape(mat_bob)
     n_eve = len(mat_eve)
     if cov is None:
-        cov = np.eye(n_modes)
+        cov = np.eye(n_tx)
     _num = np.linalg.det(np.eye(n_bob) + mat_bob @ cov @ H(mat_bob))
     _den = np.linalg.det(np.eye(n_eve) + mat_eve @ cov @ H(mat_eve))
     _num = np.real(_num)  # determinant of a hermitian matrix is real. there might occur numerical issues
