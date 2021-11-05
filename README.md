@@ -1,5 +1,9 @@
 # Calculation of the Secrecy Capacity
 
+[![PyPI version](https://badge.fury.io/py/secrecy-capacity.svg)](https://badge.fury.io/py/secrecy-capacity)
+[![Documentation Status](https://readthedocs.org/projects/secrecy-capacity-calculation/badge/?version=latest)](https://secrecy-capacity-calculation.readthedocs.io/en/latest/?badge=latest)
+
+
 This repository contains Python implementations of two algorithms that allow a
 (numerical) calculation of the secrecy capacity of wiretap channels.
 
@@ -39,6 +43,11 @@ you do not need a local Python installation and you can simply run the scripts
 in your browser.
 
 [![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/klb2/secrecy-capacity-calculation/HEAD?labpath=examples%2FSecrecy%20Capacity.ipynb)
+
+
+## Documentation
+You can find the documentation with some examples on [Read the
+Docs](https://secrecy-capacity-calculation.readthedocs.io/).
 
 
 ## Version
