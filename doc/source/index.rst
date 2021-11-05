@@ -10,6 +10,8 @@ Welcome to Calculation of the Secrecy Capacity's documentation!
    :maxdepth: 2
    :caption: Contents:
    
+   installation
+   examples
    secrecy_capacity
 
 
