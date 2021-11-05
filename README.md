@@ -15,7 +15,13 @@ The two algorithms are taken from the following publications:
 > 2020.](https://doi.org/10.1109/ICC40277.2020.9149178)
 
 
+
 ## Installation
+You can install the package via pip
+```bash
+pip install secrecy-capacity
+```
+
 If you want to install the latest version, you can install the
 package from source
 ```bash
