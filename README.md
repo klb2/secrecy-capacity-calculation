@@ -2,6 +2,7 @@
 
 [![PyPI version](https://badge.fury.io/py/secrecy-capacity.svg)](https://badge.fury.io/py/secrecy-capacity)
 [![Documentation Status](https://readthedocs.org/projects/secrecy-capacity-calculation/badge/?version=latest)](https://secrecy-capacity-calculation.readthedocs.io/en/latest/?badge=latest)
+[![Pytest](https://github.com/klb2/secrecy-capacity-calculation/actions/workflows/pytest.yml/badge.svg)](https://github.com/klb2/secrecy-capacity-calculation/actions/workflows/pytest.yml)
 
 
 This repository contains Python implementations of two algorithms that allow a
