@@ -32,7 +32,7 @@ package from source
 ```bash
 git clone https://github.com/klb2/secrecy-capacity-calculation.git
 cd secrecy_capacity
-git checkout dev  # only if you want to unstable version
+git checkout dev  # only if you want the unstable version
 pip install .
 ```
 
